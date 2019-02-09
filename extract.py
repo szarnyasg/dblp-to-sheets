@@ -18,6 +18,10 @@ venues = {
     "GRADES@SIGMOD/PODS": "GRADES",
     "PVLDB": "VLDB",
     "SIGMOD Conference": "SIGMOD",
+    "ACM Comput. Surv.": "CSUR",
+    "Electr. Notes Theor. Comput. Sci.": "ENTCS",
+    "ACM Trans. Internet Techn.": "TOIT",
+    # "": "",
     # "": "",
     # "": "",
     # "": "",
@@ -35,11 +39,12 @@ key = sys.argv[1]
 #key = "journals/corr/OngPV14"
 #key = "journals/dagstuhl-manifestos/AbiteboulABBCD018"
 
-key = re.sub("https?://dblp.uni-trier.de/rec/html/", "", key)
+key = re.sub("https?://dblp.uni-trier.de/rec/[a-z]+/", "", key)
 
-url = "https://dblp.uni-trier.de/rec/xml/" + key
+xml_url = "https://dblp.uni-trier.de/rec/xml/" + key
+html_url = "https://dblp.uni-trier.de/rec/html/" + key
 
-response = urllib.request.urlopen(url)
+response = urllib.request.urlopen(xml_url)
 htmlparser = etree.HTMLParser()
 tree = etree.parse(response, htmlparser)
 
@@ -52,14 +57,18 @@ author_names = [el.text for el in author_elements]
 author_lastnames = [author.split(" ")[-1] for author in author_names]
 
 if len(author_lastnames) == 1:
-    refkey_author = author_lastnames[0] #[0:3]
+    authors_abbrv = author_lastnames[0][0:3]
 else:
-    refkey_author = "".join([a[0] for a in author_lastnames[0:3]])
+    authors_abbrv = "".join([a[0] for a in author_lastnames[0:3]])
     if len(author_lastnames) > 3:
-        refkey_author += "+"
+        authors_abbrv += "+"
 
 authors_list = ", ".join(author_names)
-ee = tree.xpath("//dblp//ee")[0].text
+ee = tree.xpath("//dblp//ee")
+if len(ee) > 0:
+    pub_url = ee[0].text
+else:
+    pub_url = ""
 year = tree.xpath("//dblp//year")[0].text
 
 if key.startswith("conf"):
@@ -72,18 +81,11 @@ else:
 
 # abbreviate venue name if possible
 if venue in venues:
-    refkey_venue = venues[venue]
+    venue_abbrv = venues[venue]
 else:
-    refkey_venue = venue
+    venue_abbrv = venue
 
-refkey = refkey_author + ", " + refkey_venue + "'" + year[2:4]
-
-row = ("[" + refkey + "]\t" +
-    ee + "\t" +
-    url + "\t" + "\t" +
-    authors_list + "\t" +
-    title + "\t" +
-    venue + "\t" +
-    year)
+cells = [pub_url, html_url, authors_list, authors_abbrv, title, venue, venue_abbrv, year]
+row = "\t".join(cells)
 print(row)
 pyperclip.copy(row)
