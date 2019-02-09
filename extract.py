@@ -52,9 +52,11 @@ tree = etree.parse(response, htmlparser)
 title = tree.xpath("//dblp//title")[0].text
 title = re.sub(".$", "", title)
 
+# extract authors, drop '0001'-style unique identifiers and extracts last names
 author_elements = tree.xpath("//dblp//author")
 author_names = [el.text for el in author_elements]
-author_lastnames = [author.split(" ")[-1] for author in author_names]
+author_names_cleaned = [re.sub(" [0-9][0-9][0-9][0-9]", "", author) for author in author_names]
+author_lastnames = [author.split(" ")[-1] for author in author_names_cleaned]
 
 if len(author_lastnames) == 1:
     authors_abbrv = author_lastnames[0][0:3]
@@ -63,7 +65,7 @@ else:
     if len(author_lastnames) > 3:
         authors_abbrv += "+"
 
-authors_list = ", ".join(author_names)
+authors_list = ", ".join(author_names_cleaned)
 ee = tree.xpath("//dblp//ee")
 if len(ee) > 0:
     pub_url = ee[0].text
